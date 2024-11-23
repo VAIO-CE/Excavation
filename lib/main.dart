@@ -1,7 +1,6 @@
-import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:flutter/material.dart';
-import 'package:bluetooth_classic/models/device.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
+import './services/bluetooth_manager.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,52 +32,16 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
-  final _bluetoothClassicPlugin = BluetoothClassic();
-  final List<Device> _discoveredDevices = [];
-  bool _scanning = false;
+  final _bluetoothManager = BluetoothManager();
 
   @override
   void initState() {
     super.initState();
-    _checkPermissions();
+    _bluetoothManager.checkPermissions();
   }
 
-  Future<void> _checkPermissions() async {
-    var status = await Permission.bluetooth.status;
-    if (!status.isGranted) {
-      await Permission.bluetooth.request();
-    }
-    var connectStatus = await Permission.bluetoothConnect.status;
-    if (!connectStatus.isGranted) {
-      await Permission.bluetoothConnect.request();
-    }
-    var scanStatus = await Permission.bluetoothScan.status;
-    if (!scanStatus.isGranted) {
-      await Permission.bluetoothScan.request();
-    }
-    var locationStatus = await Permission.location.status;
-    if (!locationStatus.isGranted) {
-      await Permission.location.request();
-    }
-  }
-
-  Future<void> _scan() async {
-    if (_scanning) {
-      await _bluetoothClassicPlugin.stopScan();
-      setState(() {
-        _scanning = false;
-      });
-    } else {
-      await _bluetoothClassicPlugin.startScan();
-      _bluetoothClassicPlugin.onDeviceDiscovered().listen((device) {
-        setState(() {
-          _discoveredDevices.add(device);
-        });
-      });
-      setState(() {
-        _scanning = true;
-      });
-    }
+  void updateUI() {
+    setState(() {});
   }
 
   @override
@@ -102,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(
-                        hintText: "XX:XX:XX:XX:XX:XX:XX",
+                        hintText: "XX:XX:XX:XX:XX:XX",
                         filled: true,
                         fillColor: Colors.grey[200],
                         border: OutlineInputBorder(
@@ -134,20 +97,26 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Stack(
                 children: [
                   Center(
-                    child: _scanning
+                    child: _bluetoothManager.isScanning
                         ? const CircularProgressIndicator()
-                        : _discoveredDevices.isEmpty
+                        : _bluetoothManager.discoveredDevices.isEmpty
                             ? const Text(
                                 "No devices found!",
                                 style: TextStyle(color: Colors.blueGrey),
                               )
                             : ListView.builder(
-                                itemCount: _discoveredDevices.length,
+                                itemCount:
+                                    _bluetoothManager.discoveredDevices.length,
                                 itemBuilder: (context, index) {
-                                  var device = _discoveredDevices[index];
+                                  var device = _bluetoothManager
+                                      .discoveredDevices[index];
                                   return ListTile(
                                     title: Text(device.name ?? "Unknown"),
                                     subtitle: Text(device.address),
+                                    onTap: () async {
+                                      await Clipboard.setData(
+                                          ClipboardData(text: device.address));
+                                    },
                                   );
                                 },
                               ),
@@ -156,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     bottom: 16,
                     right: 16,
                     child: FloatingActionButton(
-                      onPressed: _scan,
+                      onPressed: () => _bluetoothManager.startScan(updateUI),
                       backgroundColor: Colors.blueGrey,
                       child: const Icon(Icons.location_searching),
                     ),
