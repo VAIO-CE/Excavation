@@ -12,6 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Excavation',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
@@ -66,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       controller: _controller,
                       decoration: InputDecoration(
                         hintText: "XX:XX:XX:XX:XX:XX",
+                        hintStyle: TextStyle(color: Colors.grey[400]),
                         filled: true,
                         fillColor: Colors.grey[200],
                         border: OutlineInputBorder(
@@ -125,7 +127,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     bottom: 16,
                     right: 16,
                     child: FloatingActionButton(
-                      onPressed: () => _bluetoothManager.startScan(updateUI),
+                      onPressed: () => _bluetoothManager.startScan(updateUI,
+                          timeout: const Duration(seconds: 20)),
                       backgroundColor: Colors.blueGrey,
                       child: const Icon(Icons.location_searching),
                     ),
