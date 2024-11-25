@@ -1,7 +1,5 @@
-// import 'package:excavator/pages/controller_change_page.dart';
-import 'package:excavator/pages/controller_change_page.dart';
-import 'package:excavator/pages/home_page.dart';
 import 'package:flutter/material.dart';
+import 'util/app_router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,14 +10,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Excavation',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
         useMaterial3: true,
       ),
-      home: const MyControllerChangePage(),
+      routerConfig: AppRouter.router,
     );
   }
 }
