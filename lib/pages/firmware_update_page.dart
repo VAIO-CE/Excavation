@@ -1,4 +1,3 @@
-import 'package:excavator/components/bottom_navbar.dart';
 import 'package:flutter/material.dart';
 
 class MyFirmwarePage extends StatefulWidget {
