@@ -12,7 +12,6 @@ class _MyHomePage extends State<MyHomePage> {
   final HttpService httpService = HttpService(baseUrl: "http://vaio.local");
 
   Future<void> changeControlState(String? state) async {
-    // TO-DO
     final body = {
       'state': state,
     };
