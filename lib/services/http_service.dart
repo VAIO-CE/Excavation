@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:excavator/util/multipart_extension.dart';
 import 'package:http/http.dart' as http;
 
 class HttpService {
@@ -54,51 +56,34 @@ class HttpService {
     }
   }
 
-  Future<String> getLatestFirmware() async {
-    const url =
-        'https://api.github.com/repos/VAIO-CE/VAIO-Code/releases/latest';
-
+  Future<void> uploadFirmware(String endpointESP, Uint8List? firmwareBytes,
+      Function(double) onProgress) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      final uri = Uri.parse('$baseUrl$endpointESP');
+
+      final request = http.MultipartRequest("POST", uri)
+        ..files.add(http.MultipartFile.fromBytes(
+            'firmware', firmwareBytes as List<int>,
+            filename: 'firmware.bin'));
+
+      final streamResponse = await request.sendWithProgress(
+        (int bytes, int total) {
+          onProgress(bytes / total);
+        },
+      );
+
+      final response = await http.Response.fromStream(streamResponse);
+      // final streamResponse = await request.send();
+      // final response = await http.Response.fromStream(streamResponse);
+
       if (response.statusCode == 200) {
-        final assets = parseJson(response)['assets'] as List;
-        for (var asset in assets) {
-          if (asset['name'] == "firmware.bin") {
-            return asset['browser_download_url'];
-          }
-        }
-        throw Exception(
-            "firmware.bin not found in the latest release! Please report to devs.");
+        print('Firmware update successful!');
       } else {
         throw Exception(
-            'Failed to fetch latest release: ${response.statusCode}');
+            'Failed to update firmware with code: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error fetching firmware URL: $e');
-    }
-  }
-
-  Future<List<int>> downloadFirmware(String firmwareUrl) async {
-    final response = await http.get(Uri.parse(firmwareUrl));
-    if (response.statusCode == 200) {
-      return response.bodyBytes;
-    } else {
-      throw Exception("Failed to download firmware: ${response.statusCode}");
-    }
-  }
-
-  Future<void> uploadFirmware(String endpointESP, List<int> firmwareBytes) async {
-    final uri = Uri.parse(endpointESP);
-
-    final request = http.MultipartRequest("POST", uri)..files.add.(http.MultipartFile.fromBytes('firmware', firmwareBytes, filename: 'firmware.bin'));
-
-    final streamResponse = await request.send();
-    final response = await http.Response.fromStream(streamResponse);
-
-    if(response.statusCode == 200){
-      print('Firmware uploaded successfully: ${response.body}');
-    } else {
-      throw Exception('Failed to upload firmware: ${response.statusCode}');
+      throw Exception('Error uploading firmware: $e');
     }
   }
 

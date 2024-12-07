@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:excavator/services/http_service.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 
 class MyFirmwarePage extends StatefulWidget {
   const MyFirmwarePage({super.key});
@@ -20,21 +23,27 @@ class _MyFirmwarePage extends State<MyFirmwarePage> {
 
   Future<void> updateVAIO() async {
     try {
-      final firmwareUrl = await httpService.getLatestFirmware();
-      print('Firmware URL: $firmwareUrl');
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-      print("Downloading...");
-      final firmwareBytes = await httpService.downloadFirmware(firmwareUrl);
-      print('Firmware downloaded, size: ${firmwareBytes.length} bytes');
+      if (result != null) {
+        Uint8List? fileBytes = result.files.first.bytes;
+        String fileName = result.files.first.name;
 
-      print("Uploading to ESP32");
-      await httpService.uploadFirmware(
-          "${httpService.baseUrl}/updateFirmware", firmwareBytes);
-      print("Firmware update successful!");
+        RegExp regExp = RegExp(r"^firmware\.bin(\(\d+\))?$");
+
+        if (regExp.hasMatch(fileName)) {
+          await httpService.uploadFirmware("/updateFirmware", fileBytes,
+              (progress) {
+            uploadProgress.value = progress;
+          });
+        } else {
+          throw Exception("Wrong file inserted.");
+        }
+      }
     } catch (e) {
-      print("Error: $e");
+      throw Exception("Update failed: $e");
     } finally {
-      uploadProgress.value = 0.0;
+      uploadProgress.value = 1.0;
     }
   }
 
@@ -47,8 +56,9 @@ class _MyFirmwarePage extends State<MyFirmwarePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text("Firmware Update Progress", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 16),
+            const Text("Firmware Update Progress",
+                style: TextStyle(fontSize: 18)),
+            const SizedBox(height: 16),
             ValueListenableBuilder<double>(
               valueListenable: uploadProgress,
               builder: (context, progress, child) {
@@ -56,11 +66,11 @@ class _MyFirmwarePage extends State<MyFirmwarePage> {
                   value: progress,
                   minHeight: 10,
                   backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
                 );
               },
             ),
-            SizedBox(height: 32),
+            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: updateVAIO,
               child: const Text("Update VAIO"),
